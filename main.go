@@ -8,8 +8,9 @@ import (
 	"log"
 	"os"
 	"sort"
-	"strings"
 	"testing"
+
+	rule2 "github.com/LaChimere/proxy-rule-classifier/rule"
 )
 
 var (
@@ -18,6 +19,9 @@ var (
 
 	existedRules    = make(map[string]bool)
 	classifiedRules = make(map[string][]string)
+
+	// Special rules should be written at the end of the file.
+	geoRule, finalRule *rule2.Rule
 )
 
 const OUTPUT_FILENAME = "output"
@@ -41,18 +45,21 @@ func init() {
 func main() {
 	for _, file := range ruleFiles {
 		filePath := fmt.Sprintf("%s/%s", rulesDirPath, file.Name())
-		if err := readRules(filePath); err != nil {
+		if err := readRuleStrings(filePath); err != nil {
 			log.Fatalln(err.Error())
 		}
 	}
 
-	classifyRules()
+	if err := classifyRules(); err != nil {
+		log.Fatalln(err.Error())
+	}
+
 	if err := outputClassifiedRules(); err != nil {
 		log.Fatalln(err.Error())
 	}
 }
 
-func readRules(filename string) error {
+func readRuleStrings(filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -76,30 +83,24 @@ func readRules(filename string) error {
 	return nil
 }
 
-func parseRuleComment(fullRule string) (rule, comment string) {
-	commentPosition := strings.Index(fullRule, ` // `)
-	if commentPosition == -1 {
-		return fullRule, ""
+func classifyRules() error {
+	for ruleStr := range existedRules {
+		rule, err := rule2.NewRuleFromString(ruleStr)
+		if err != nil {
+			return err
+		}
+
+		switch rule.Type {
+		case rule2.GEOIP:
+			geoRule = rule
+		case rule2.FINAL:
+			finalRule = rule
+		default:
+			classifiedRules[rule.Policy] = append(classifiedRules[rule.Policy], rule.String())
+		}
 	}
 
-	return fullRule[:commentPosition], fullRule[commentPosition:]
-}
-
-func parseRuleFields(rule string) []string {
-	return strings.Split(rule, ",")
-}
-
-func parseRulePolicy(rule string) string {
-	fields := parseRuleFields(rule)
-	return fields[len(fields)-1]
-}
-
-func classifyRules() {
-	for rule := range existedRules {
-		rule, comment := parseRuleComment(rule)
-		rulePolicy := parseRulePolicy(rule)
-		classifiedRules[rulePolicy] = append(classifiedRules[rulePolicy], rule+comment)
-	}
+	return nil
 }
 
 func outputClassifiedRules() error {
@@ -134,5 +135,6 @@ func outputClassifiedRules() error {
 		}
 	}
 
-	return nil
+	// TODO: write special rules at the end of the file.
+	return writer.Flush()
 }
