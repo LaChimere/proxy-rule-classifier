@@ -3,6 +3,8 @@ package rule
 import (
 	"fmt"
 	"strings"
+
+	"github.com/LaChimere/proxy-rule-classifier/pkg/errors"
 )
 
 // Rule refers to the proxy rule.
@@ -11,19 +13,23 @@ import (
 type Rule struct {
 	Type      RuleType
 	Value     string
-	Policy    string
+	Policy    PolicyType
 	NoResolve bool
 	Comment   string
 }
 
 // NewRule creates a Rule entity with the type, value and policy of a common proxy rule.
-func NewRule(_type RuleType, value string, policy string) *Rule {
+func NewRule(_type RuleType, value string, policy PolicyType) (*Rule, error) {
+	if !validPolicy(policy) {
+		return nil, errors.InvalidPolicy
+	}
+
 	return &Rule{
 		Type:      _type,
 		Value:     value,
 		Policy:    policy,
 		NoResolve: false,
-	}
+	}, nil
 }
 
 // NewRuleFromString creates a Rule entity by the input string.
@@ -36,18 +42,34 @@ func NewRuleFromString(str string) (rule *Rule, err error) {
 	fieldNum := len(fields)
 	lastField, comment := parseComment(fields[fieldNum-1])
 
+	var (
+		_type  RuleType
+		value  string
+		policy PolicyType
+	)
+
 	// Special treatment for FINAL.
 	if fields[0] == FINAL {
-		return &Rule{Type: FINAL, Policy: fields[1], Comment: comment}, nil
+		policy = fields[1]
+		if !validPolicy(policy) {
+			return nil, errors.InvalidPolicy
+		}
+		return &Rule{Type: FINAL, Policy: policy, Comment: comment}, nil
 	}
 
+	_type, value = fields[0], fields[1]
+	rule = &Rule{Type: _type, Value: value, Comment: comment}
 	if fieldNum == 3 {
-		rule = NewRule(fields[0], fields[1], lastField).WithComment(comment)
+		policy = lastField
 	} else {
-		rule = NewRule(fields[0], fields[1], fields[2]).WithComment(comment)
+		policy = fields[2]
 		rule.NoResolve = true
 	}
+	rule.Policy = policy
 
+	if !validPolicy(rule.Policy) {
+		return nil, errors.InvalidPolicy
+	}
 	return rule, nil
 }
 
@@ -74,7 +96,7 @@ func (rule *Rule) String() string {
 	return s
 }
 
-// parseComment processes the last field of the splitted string to get the real last field and the comment.
+// parseComment processes the last field of the split string to get the real last field and the comment.
 func parseComment(lastField string) (field, comment string) {
 	commentPosition := strings.Index(lastField, "//")
 	if commentPosition == -1 {
@@ -92,9 +114,9 @@ func parseFields(str string) (fields []string, err error) {
 	fieldNum := len(fields)
 
 	if fieldNum < 3 {
-		return nil, NewError("insufficient fields to resolve a Rule entity")
+		return nil, errors.InsufficientFields
 	} else if fieldNum > 4 {
-		return nil, NewError("too many fields to resolve a Rule entity")
+		return nil, errors.TooManyFields
 	}
 
 	for _, field := range fields {
@@ -102,4 +124,13 @@ func parseFields(str string) (fields []string, err error) {
 	}
 
 	return fields, nil
+}
+
+func validPolicy(policy PolicyType) bool {
+	for _, p := range ValidPolicies {
+		if policy == p {
+			return true
+		}
+	}
+	return false
 }
