@@ -8,7 +8,9 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 
+	"github.com/LaChimere/proxy-rule-classifier/global"
 	"github.com/LaChimere/proxy-rule-classifier/rule"
 )
 
@@ -80,6 +82,11 @@ func readRuleStrings(filename string) error {
 			continue
 		}
 
+		// Disregard comment lines.
+		if strings.HasPrefix(ru, "//") {
+			continue
+		}
+
 		inputCount++
 		existedRules[ru] = true
 	}
@@ -111,8 +118,6 @@ func classifyRules() error {
 }
 
 func outputClassifiedRules() error {
-	// TODO: the order should be proxy -> direct -> reject.
-
 	outputFile, err := os.Create(outputPath)
 	if err != nil {
 		return err
@@ -126,12 +131,16 @@ func outputClassifiedRules() error {
 	sort.Strings(rulePolicies)
 
 	writer := bufio.NewWriter(outputFile)
-	for _, rulePolicy := range rulePolicies {
-		if _, err = writer.WriteString(fmt.Sprintf("// %s\n", rulePolicy)); err != nil {
+	for _, policy := range global.Policies {
+		rules, ok := classifiedRules[policy]
+		if !ok {
+			continue
+		}
+
+		if _, err = writer.WriteString(fmt.Sprintf("// %s\n", policy)); err != nil {
 			return err
 		}
 
-		rules := classifiedRules[rulePolicy]
 		sort.Strings(rules)
 		for _, ru := range rules {
 			if _, err = writer.WriteString(fmt.Sprintf("%s\n", ru)); err != nil {

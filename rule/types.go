@@ -21,3 +21,18 @@ const (
 	IP_ASN           RuleType = "IP-ASN"
 	FINAL            RuleType = "FINAL"
 )
+
+type PolicyType = string
+
+const (
+	JAPAN     PolicyType = "Japan"
+	HONGKONG  PolicyType = "Hong Kong"
+	US        PolicyType = "US"
+	AUSTRALIA PolicyType = "Australia"
+
+	DIRECT         PolicyType = "DIRECT"
+	REJECT         PolicyType = "REJECT"
+	REJECT_TINYGIF PolicyType = "REJECT-TINYGIF"
+)
+
+var ValidPolicies = []PolicyType{JAPAN, HONGKONG, US, AUSTRALIA, DIRECT, REJECT, REJECT_TINYGIF}
