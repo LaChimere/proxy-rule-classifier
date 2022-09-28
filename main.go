@@ -124,12 +124,6 @@ func outputClassifiedRules() error {
 	}
 	defer outputFile.Close()
 
-	rulePolicies := make([]string, 0, len(classifiedRules))
-	for rulePolicy := range classifiedRules {
-		rulePolicies = append(rulePolicies, rulePolicy)
-	}
-	sort.Strings(rulePolicies)
-
 	writer := bufio.NewWriter(outputFile)
 	for _, policy := range global.Policies {
 		rules, ok := classifiedRules[policy]
