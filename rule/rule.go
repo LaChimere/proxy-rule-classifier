@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// Rule refers to the proxy rule.
+// The Type and Policy should not be empty.
+// If Type is not FINAL, the Value should not be empty either.
 type Rule struct {
 	Type      RuleType
 	Value     string
@@ -13,6 +16,7 @@ type Rule struct {
 	Comment   string
 }
 
+// NewRule creates a Rule entity with the type, value and policy of a common proxy rule.
 func NewRule(_type RuleType, value string, policy string) *Rule {
 	return &Rule{
 		Type:      _type,
@@ -22,6 +26,7 @@ func NewRule(_type RuleType, value string, policy string) *Rule {
 	}
 }
 
+// NewRuleFromString creates a Rule entity by the input string.
 func NewRuleFromString(str string) (rule *Rule, err error) {
 	fields, err := parseFields(str)
 	if err != nil {
@@ -46,11 +51,13 @@ func NewRuleFromString(str string) (rule *Rule, err error) {
 	return rule, nil
 }
 
+// WithComment adds a comment to a Rule entity.
 func (rule *Rule) WithComment(comment string) *Rule {
 	rule.Comment = comment
 	return rule
 }
 
+// String converts the Rule objects to the corresponding strings the same format as those in proxy config files.
 func (rule *Rule) String() string {
 	if rule.Type == FINAL {
 		return fmt.Sprintf("%s,%s,dns-failed", rule.Type, rule.Policy)
@@ -67,6 +74,7 @@ func (rule *Rule) String() string {
 	return s
 }
 
+// parseComment processes the last field of the splitted string to get the real last field and the comment.
 func parseComment(lastField string) (field, comment string) {
 	commentPosition := strings.Index(lastField, "//")
 	if commentPosition == -1 {
@@ -78,6 +86,7 @@ func parseComment(lastField string) (field, comment string) {
 	return
 }
 
+// parseFields splits the input string by ",", and checks if the number of fields is valid.
 func parseFields(str string) (fields []string, err error) {
 	fields = strings.Split(str, ",")
 	fieldNum := len(fields)
