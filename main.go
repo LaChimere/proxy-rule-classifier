@@ -131,7 +131,7 @@ func outputClassifiedRules() error {
 			continue
 		}
 
-		if _, err = writer.WriteString(fmt.Sprintf("// %s\n", policy)); err != nil {
+		if _, err = writer.WriteString(fmt.Sprintf("# %s\n", policy)); err != nil {
 			return err
 		}
 
@@ -142,12 +142,13 @@ func outputClassifiedRules() error {
 			}
 			outputCount++
 		}
+	}
 
-		if _, err = writer.WriteString("\n"); err != nil {
+	if geoRule != nil || finalRule != nil {
+		if _, err = writer.WriteString("# Rules should be at last\n"); err != nil {
 			return err
 		}
 	}
-
 	if geoRule != nil {
 		if _, err = writer.WriteString(fmt.Sprintf("%s\n", geoRule)); err != nil {
 			return err
