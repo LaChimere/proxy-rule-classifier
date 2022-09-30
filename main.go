@@ -78,12 +78,12 @@ func readRuleStrings(filename string) error {
 	for err == nil {
 		ru := string(line)
 		line, _, err = reader.ReadLine()
-		if _, ok := existedRules[ru]; ok || ru == "" || ru == "\n" {
+		if _, ok := existedRules[ru]; ok {
 			continue
 		}
 
-		// Disregard comment lines.
-		if strings.HasPrefix(ru, "//") {
+		// Disregard empty and comment lines.
+		if ru == "" || ru == "\n" || strings.HasPrefix(ru, "#") {
 			continue
 		}
 
